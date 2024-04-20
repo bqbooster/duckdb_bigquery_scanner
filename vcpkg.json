@@ -1,5 +1,15 @@
 {
+  "name": "duckdb-bigquery",
+  "version-string": "unversioned",
+  "description": "DuckDB extension for BigQuery",
   "dependencies": [
-    "openssl"
+    {
+      "name": "google-cloud-cpp",
+      "default-features": false,
+      "features": ["bigquery", "grpc-common", "storage"]
+    },
+    "cpprestsdk",
+    "nlohmann-json",
+    "arrow"
   ]
 }
