@@ -90,7 +90,7 @@ static void LoadInternal(DatabaseInstance &db) {
 }
 
 void DuckdbBigqueryExtension::Load(DuckDB &db) {
-	Printer::Print("Load BigQuery extension\n");
+	//Printer::Print("Load BigQuery extension\n");
 	LoadInternal(*db.instance);
 }
 

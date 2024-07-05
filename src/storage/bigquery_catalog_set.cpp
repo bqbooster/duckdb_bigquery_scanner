@@ -14,19 +14,20 @@ optional_ptr<CatalogEntry> BigQueryCatalogSet::GetEntry(ClientContext &context, 
 		LoadEntries(context);
 	}
 	lock_guard<mutex> l(entry_lock);
-	Printer::Print("BigQueryCatalogSet::GetEntry find " + name);
+	//Printer::Print("BigQueryCatalogSet::GetEntry find " + name);
 
-	for (auto &entry : entries) {
-		Printer::Print("BigQueryCatalogSet::GetEntry HAS " + entry.first);
-	}
+	// for (auto &entry : entries) {
+	// 	Printer::Print("BigQueryCatalogSet::GetEntry HAS " + entry.first);
+	// }
 
 	auto entry = entries.find(name);
 	if (entry == entries.end()) {
-		Printer::Print("BigQueryCatalogSet::GetEntry not found");
+		//Printer::Print("BigQueryCatalogSet::GetEntry not found");
 		return nullptr;
-	} else {
-		Printer::Print("BigQueryCatalogSet::GetEntry found!!!");
 	}
+	// else {
+	// 	Printer::Print("BigQueryCatalogSet::GetEntry found!!!");
+	// }
 	return entry->second.get();
 }
 
@@ -67,7 +68,7 @@ void BigQueryCatalogSet::Scan(ClientContext &context, const std::function<void(C
 }
 
 optional_ptr<CatalogEntry> BigQueryCatalogSet::CreateEntry(unique_ptr<CatalogEntry> entry) {
-	Printer::Print("BigQueryCatalogSet::CreateEntry");
+	//Printer::Print("BigQueryCatalogSet::CreateEntry");
 	lock_guard<mutex> l(entry_lock);
 	auto result = entry.get();
 	if (result->name.empty()) {
@@ -75,9 +76,9 @@ optional_ptr<CatalogEntry> BigQueryCatalogSet::CreateEntry(unique_ptr<CatalogEnt
 	}
 	entries.insert(make_pair(result->name, std::move(entry)));
 	// print all values in entries
-	for (auto &entry : entries) {
-		Printer::Print("BigQueryCatalogSet::CreateEntry HAS " + entry.first);
-	}
+	// for (auto &entry : entries) {
+	// 	Printer::Print("BigQueryCatalogSet::CreateEntry HAS " + entry.first);
+	// }
 	return result;
 }
 

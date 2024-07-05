@@ -53,11 +53,6 @@ public:
     ::bigquery_storage_read::ArrowRecordBatch const&
         record_batch_in,
     std::shared_ptr<arrow::Schema> schema);
-	static void PrintColumnNames(std::shared_ptr<arrow::RecordBatch> record_batch);
-	static void ProcessRecordBatch(std::shared_ptr<arrow::Schema> schema,
-                        std::shared_ptr<arrow::RecordBatch> record_batch,
-                        std::int64_t num_rows);
-	void process();
 private:
 	idx_t current_offset = 0;
 

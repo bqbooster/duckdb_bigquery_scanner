@@ -37,7 +37,7 @@ void BigQueryTableEntry::BindUpdateConstraints(Binder &binder, LogicalGet &get, 
 }
 
 TableFunction BigQueryTableEntry::GetScanFunction(ClientContext &context, unique_ptr<FunctionData> &bind_data) {
-	Printer::Print("BigQueryTableEntry::GetScanFunction");
+	//Printer::Print("BigQueryTableEntry::GetScanFunction");
 
 	auto scan_bind_data = make_uniq<BigQueryScanBindData>(*this);
 

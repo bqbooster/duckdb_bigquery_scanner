@@ -187,7 +187,7 @@ bool CatalogTypeIsSupported(CatalogType type) {
 
 void BigQuerySchemaEntry::Scan(ClientContext &context, CatalogType type,
                             const std::function<void(CatalogEntry &)> &callback) {
-	Printer::Print("BigQuerySchemaEntry::Scan");
+	//Printer::Print("BigQuerySchemaEntry::Scan");
 	if (!CatalogTypeIsSupported(type)) {
 		return;
 	}
@@ -208,7 +208,7 @@ optional_ptr<CatalogEntry> BigQuerySchemaEntry::GetEntry(CatalogTransaction tran
 	}
 	auto entry = GetCatalogSet(type).GetEntry(transaction.GetContext(), name);
 	if(!entry && type != CatalogType::INDEX_ENTRY) {
-		Printer::Print("BigQuerySchemaEntry::GetEntry not found creating");
+		//Printer::Print("BigQuerySchemaEntry::GetEntry not found creating");
 		// cast catalog to BigQueryCatalog
 		auto bq_catalog = dynamic_cast<BigQueryCatalog*>(&this->catalog);
 
@@ -220,12 +220,12 @@ optional_ptr<CatalogEntry> BigQuerySchemaEntry::GetEntry(CatalogTransaction tran
 			bq_catalog->storage_project,
 			this->name,
 			name);
-		Printer::Print("BigQuerySchemaEntry::GetEntry creating table entry");
+		//Printer::Print("BigQuerySchemaEntry::GetEntry creating table entry");
 		// print the columns from create_info inside table_info
 		auto &columns = table_entry->GetColumns();
-		for (auto &col : columns.GetColumnNames()) {
-			Printer::Print("BigQuerySchemaEntry::GetEntry column: " + col);
-		}
+		// for (auto &col : columns.GetColumnNames()) {
+		// 	Printer::Print("BigQuerySchemaEntry::GetEntry column: " + col);
+		// }
 		return GetCatalogSet(type).CreateEntry(std::move(table_entry));
 	}
 	return GetCatalogSet(type).GetEntry(transaction.GetContext(), name);

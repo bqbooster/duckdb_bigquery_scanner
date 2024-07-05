@@ -23,7 +23,9 @@ struct BigQueryScanBindData : public FunctionData {
 	BigQueryTableEntry &table;
 	vector<string> column_names;
 	vector<LogicalType> column_types;
-	//string limit;
+	idx_t limit;
+	idx_t offset;
+	bool has_limit = false;
 
 public:
 	unique_ptr<FunctionData> Copy() const override {

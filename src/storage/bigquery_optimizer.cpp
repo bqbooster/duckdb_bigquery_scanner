@@ -40,12 +40,13 @@ void OptimizeBigQueryScan(unique_ptr<LogicalOperator> &op) {
 			return;
 		}
 		auto &bind_data = get.bind_data->Cast<BigQueryScanBindData>();
-		// if (limit.limit_val.Type() != LimitNodeType::UNSET) {
-		// 	bind_data.limit += " LIMIT " + to_string(limit.limit_val.GetConstantValue());
-		// }
-		// if (limit.offset_val.Type() != LimitNodeType::UNSET) {
-		// 	bind_data.limit += " OFFSET " + to_string(limit.offset_val.GetConstantValue());
-		// }
+		if (limit.limit_val.Type() != LimitNodeType::UNSET) {
+			bind_data.limit = limit.limit_val.GetConstantValue();
+			bind_data.has_limit = true;
+		}
+		if (limit.offset_val.Type() != LimitNodeType::UNSET) {
+			bind_data.offset = limit.offset_val.GetConstantValue();
+		}
 		// remove the limit
 		op = std::move(op->children[0]);
 		return;

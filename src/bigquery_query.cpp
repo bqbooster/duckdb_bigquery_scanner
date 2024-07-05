@@ -50,7 +50,7 @@ public:
 };
 
 static void BigQueryQuery(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
-	Printer::Print("BigQueryQuery");
+	//Printer::Print("BigQueryQuery");
 	auto &gstate = data.global_state->Cast<BigQueryQueryGlobalState>();
 	idx_t r = 0;
 	if (r == 0) {
@@ -91,8 +91,8 @@ static unique_ptr<FunctionData> BigQueryQueryBind(ClientContext &context, TableF
 	// 	return_types.push_back(field.type);
 	// }
 
-	Printer::Print("db_name" + db_name + "\n");
-	Printer::Print("sql" + sql + "\n");
+	//Printer::Print("db_name" + db_name + "\n");
+	//Printer::Print("sql" + sql + "\n");
 
 	//return make_uniq<BigQueryQueryBindData>(catalog, std::move(result), std::move(sql));
 	return make_uniq<BigQueryQueryBindData>(catalog, nullptr, std::move(sql));
@@ -101,7 +101,7 @@ static unique_ptr<FunctionData> BigQueryQueryBind(ClientContext &context, TableF
 static unique_ptr<GlobalTableFunctionState> BigQueryQueryInitGlobalState(ClientContext &context,
                                                                       TableFunctionInitInput &input) {
 	auto &bind_data = input.bind_data->CastNoConst<BigQueryQueryBindData>();
-	Printer::Print("BigQueryQueryInitGlobalState");
+	//Printer::Print("BigQueryQueryInitGlobalState");
 	// unique_ptr<BigQueryResult> bigquery_result;
 	// if (bind_data.result) {
 	// 	bigquery_result = std::move(bind_data.result);
@@ -127,7 +127,7 @@ static unique_ptr<LocalTableFunctionState> BigQueryInitLocalState(
 	ExecutionContext &context,
 	TableFunctionInitInput &input,
     GlobalTableFunctionState *global_state) {
-		Printer::Print("BigQueryInitLocalState");
+	//Printer::Print("BigQueryInitLocalState");
 	return make_uniq<BigQueryQueryLocalState>();
 }
 

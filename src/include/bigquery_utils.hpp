@@ -45,7 +45,9 @@ public:
 	const string &dataset,
 	const string &table);
 
-	static std::shared_ptr<arrow::Schema> GetArrowSchema(
+  static Value ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar);
+
+  static std::shared_ptr<arrow::Schema> GetArrowSchema(
     ::google::cloud::bigquery::storage::v1::ArrowSchema const& schema_in);
 
 	//static BigQueryConnectionParameters ParseConnectionParameters(const string &dsn);

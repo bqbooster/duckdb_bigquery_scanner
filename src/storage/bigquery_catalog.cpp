@@ -51,7 +51,7 @@ optional_ptr<SchemaCatalogEntry> BigQueryCatalog::GetSchema(CatalogTransaction t
 															const string &schema_name,
                                                          	OnEntryNotFound if_not_found,
                                                          	QueryErrorContext error_context) {
-	Printer::Print("BigQueryCatalog::GetSchema " + schema_name);
+	//Printer::Print("BigQueryCatalog::GetSchema " + schema_name);
 	// if (schema_name == DEFAULT_SCHEMA) {
 	// 	if (default_schema.empty()) {
 	// 		throw InvalidInputException("Attempting to fetch the default schema - but no database was "
@@ -64,7 +64,7 @@ optional_ptr<SchemaCatalogEntry> BigQueryCatalog::GetSchema(CatalogTransaction t
 	if (!entry && if_not_found != OnEntryNotFound::RETURN_NULL) {
 		throw BinderException("Schema with name \"%s\" not found", schema_name);
 	} else if(!entry) {
-		Printer::Print("BigQueryCatalog::GetSchema not found creating for " + schema_name);
+		//Printer::Print("BigQueryCatalog::GetSchema not found creating for " + schema_name);
 		auto schema_info = make_uniq<CreateSchemaInfo>();
 		schema_info->catalog = this->storage_project;
 		schema_info->schema = schema_name;
@@ -72,7 +72,7 @@ optional_ptr<SchemaCatalogEntry> BigQueryCatalog::GetSchema(CatalogTransaction t
  		schemas.CreateEntry(std::move(schema_entry));
 		return GetSchema(transaction, schema_name, if_not_found, error_context);
 	}
-	Printer::Print("BigQueryCatalog::GetSchema found");
+	//Printer::Print("BigQueryCatalog::GetSchema found");
 	return reinterpret_cast<SchemaCatalogEntry *>(entry.get());
 
 	return nullptr;

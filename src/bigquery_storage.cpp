@@ -35,7 +35,7 @@ string SecretValueOrEmpty(const KeyValueSecret &kv_secret, const string &name) {
 
 static unique_ptr<Catalog> BigQueryAttach(StorageExtensionInfo *storage_info, ClientContext &context, AttachedDatabase &db,
                                        const string &name, AttachInfo &info, AccessMode access_mode) {
-	Printer::Print("BigQueryAttach");
+	//Printer::Print("BigQueryAttach");
 	string database = info.path;
 	string execution_project = database;
 	// check if we have a secret provided
@@ -73,8 +73,8 @@ static unique_ptr<Catalog> BigQueryAttach(StorageExtensionInfo *storage_info, Cl
 		throw BinderException("Secret with name \"%s\" not found", secret_name);
 	}
 
-	Printer::Print("execution_project: " + execution_project + "\n");
-	Printer::Print("database: " + database + "\n");
+	//Printer::Print("execution_project: " + execution_project + "\n");
+	//Printer::Print("database: " + database + "\n");
 
 	return make_uniq<BigQueryCatalog>(db, database, execution_project, access_mode);
 }
