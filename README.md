@@ -1,9 +1,70 @@
 
 # Duckdb_bigquery
 
-⚠ **This extension is a work in progress and is not yet functional.** ⚠
+⚠ **This extension is a work in progress and is very early stage.** ⚠
 
 This extension is meant to be a foreign data wrapper for BigQuery.
+
+## Features
+
+- [x] Read from BigQuery tables (Storage API)
+- [x] Google Application Default Credentials (ADC) support
+- [x] Column pushdown
+- [x] LIMIT / OFFSET pushdown
+- [ ] Filter (WHERE) pushdown
+- [ ] Write to BigQuery tables
+- [ ] Support for BigQuery DDL
+- [ ] Support for BigQuery DML
+
+## Quickstart
+
+For the time being, you'll need to build the extension yourself. To do so, follow the instructions in the [Building](##building) section.
+
+To run the extension code, simply start the shell with `./build/release/duckdb -unsigned`.
+ 
+Once you have the extension built, you can load it in DuckDB and attach a BigQuery project like so:
+
+```sql
+LOAD 'build/release/extension/duckdb_bigquery/duckdb_bigquery.duckdb_extension';
+
+ATTACH 'my_gcp_bq_storage_project' AS bq (TYPE duckdb_bigquery);
+```
+
+You can then query your BigQuery tables like so:
+
+```sql
+SELECT my_column FROM bq.my_dataset.my_table;
+```
+
+```
+┌───────────────┐
+│    my_column  │
+│    varchar    │
+├───────────────┤
+│ My bq data!   │
+└───────────────┘
+```
+
+## Authentication
+
+The extension uses Google Application Default Credentials (ADC) to authenticate with BigQuery. This means that you need to have the `GOOGLE_APPLICATION_CREDENTIALS` environment variable set to the path of your service account key file. You can set this environment variable like so:
+
+```shell
+export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
+```
+
+For more details about setting up ADC, see the [Google Cloud documentation](https://cloud.google.com/docs/authentication/gcloud).
+
+## Configuration
+
+### Changing execution project
+
+By default, the extension will use the storage project for execution. If you want to use a different project for execution, you can specify it in the `ATTACH` statement like so:
+
+```sql
+ATTACH 'my_gcp_bq_storage_project' AS bq (TYPE duckdb_bigquery, EXECUTION_PROJECT 'my_gcp_bq_execution_project');
+```
+
 
 ## Building
 ### Managing dependencies
@@ -30,28 +91,6 @@ The main binaries that will be built are:
 - `unittest` is the test runner of duckdb. Again, the extension is already linked into the binary.
 - `duckdb_bigquery.duckdb_extension` is the loadable binary as it would be distributed.
 
-## Running the extension
-To run the extension code, simply start the shell with `./build/release/duckdb -unsigned`.
-
-Let's load the library
-```
-LOAD 'build/release/extension/duckdb_bigquery/duckdb_bigquery.duckdb_extension';
-```
-
-And attach the BigQuery GCP project of your choice
-```
-ATTACH 'my_gcp_bq_storage_project' AS bq (TYPE duckdb_bigquery, EXECUTION_PROJECT 'my_gcp_bq_execution_project'); -- The execution project is optional and fallback to the storage one
-```
-
-D select my_column from bq.my_dataset.my_table;
-
-┌───────────────┐
-│    my_column  │
-│    varchar    │
-├───────────────┤
-│ My bq data!   │
-└───────────────┘
-```
 
 ## Running the tests
 Different tests can be created for DuckDB extensions. The primary way of testing DuckDB extensions should be the SQL tests in `./test/sql`. These SQL tests can be run using:
