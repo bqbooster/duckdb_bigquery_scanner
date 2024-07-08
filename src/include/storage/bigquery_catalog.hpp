@@ -18,13 +18,16 @@ class BigQuerySchemaEntry;
 
 class BigQueryCatalog : public Catalog {
 public:
-	explicit BigQueryCatalog(AttachedDatabase &db_p, const string &path, const string &execution_project, AccessMode access_mode);
+	explicit BigQueryCatalog(AttachedDatabase &db_p, const string &path,
+	 const string &execution_project, AccessMode access_mode,
+	 const string &service_account_json);
 	~BigQueryCatalog();
 
 	string path;
 	AccessMode access_mode;
 	string execution_project;
 	string storage_project;
+	string service_account_json;
 
 public:
 	void Initialize(bool load_builtin) override;

@@ -18,6 +18,7 @@ BigQueryTableSet::BigQueryTableSet(BigQuerySchemaEntry &schema) : BigQueryInSche
 
 void BigQueryTableSet::AddColumn(ClientContext &context, BigQueryResult &result, BigQueryTableInfo &table_info,
                               idx_t column_offset) {
+	throw new NotImplementedException("Adding a column in BigQuery is not supported yet.");
 	// BigQueryTypeData type_info;
 	// idx_t column_index = column_offset;
 	// auto column_name = result.GetString(column_index);
@@ -92,6 +93,7 @@ void BigQueryTableSet::LoadEntries(ClientContext &context) {
 
 unique_ptr<BigQueryTableInfo> BigQueryTableSet::GetTableInfo(ClientContext &context, BigQuerySchemaEntry &schema,
                                                        const string &table_name) {
+	throw new NotImplementedException("Getting Table info in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, schema.ParentCatalog());
 	// auto query = GetTableInfoQuery(schema.name, table_name);
 	// auto result = transaction.Query(query);
@@ -221,6 +223,7 @@ optional_ptr<CatalogEntry> BigQueryTableSet::RefreshTable(ClientContext &context
 // }
 
 optional_ptr<CatalogEntry> BigQueryTableSet::CreateTable(ClientContext &context, BoundCreateTableInfo &info) {
+	throw new NotImplementedException("Creating a table in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 	// auto create_sql = GetBigQueryCreateTable(info.Base());
 	// transaction.Query(create_sql);
@@ -230,6 +233,7 @@ optional_ptr<CatalogEntry> BigQueryTableSet::CreateTable(ClientContext &context,
 }
 
 void BigQueryTableSet::AlterTable(ClientContext &context, RenameTableInfo &info) {
+	throw new NotImplementedException("Altering a table in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 	// string sql = "ALTER TABLE ";
 	// sql += BigQueryUtils::WriteIdentifier(info.name);
@@ -239,6 +243,7 @@ void BigQueryTableSet::AlterTable(ClientContext &context, RenameTableInfo &info)
 }
 
 void BigQueryTableSet::AlterTable(ClientContext &context, RenameColumnInfo &info) {
+	throw new NotImplementedException("Altering a table in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 	// string sql = "ALTER TABLE ";
 	// sql += BigQueryUtils::WriteIdentifier(info.name);
@@ -251,6 +256,7 @@ void BigQueryTableSet::AlterTable(ClientContext &context, RenameColumnInfo &info
 }
 
 void BigQueryTableSet::AlterTable(ClientContext &context, AddColumnInfo &info) {
+	throw new NotImplementedException("Altering a table in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 	// string sql = "ALTER TABLE ";
 	// sql += BigQueryUtils::WriteIdentifier(info.name);
@@ -265,6 +271,7 @@ void BigQueryTableSet::AlterTable(ClientContext &context, AddColumnInfo &info) {
 }
 
 void BigQueryTableSet::AlterTable(ClientContext &context, RemoveColumnInfo &info) {
+	throw new NotImplementedException("Altering a table in BigQuery is not supported yet.");
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 	// string sql = "ALTER TABLE ";
 	// sql += BigQueryUtils::WriteIdentifier(info.name);
@@ -277,6 +284,7 @@ void BigQueryTableSet::AlterTable(ClientContext &context, RemoveColumnInfo &info
 }
 
 void BigQueryTableSet::AlterTable(ClientContext &context, AlterTableInfo &alter) {
+	throw new NotImplementedException("Altering a table in BigQuery is not supported yet.");
 	// switch (alter.alter_table_type) {
 	// case AlterTableType::RENAME_TABLE:
 	// 	AlterTable(context, alter.Cast<RenameTableInfo>());

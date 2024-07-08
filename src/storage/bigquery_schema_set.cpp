@@ -33,6 +33,7 @@ void BigQuerySchemaSet::LoadEntries(ClientContext &context) {
 }
 
 optional_ptr<CatalogEntry> BigQuerySchemaSet::CreateSchema(ClientContext &context, CreateSchemaInfo &info) {
+	throw new NotImplementedException("Creating a schema in BigQuery is not supported yet.");
 	// TODO implement this, we don't have access to the catalog with current BQ C++ API
 	// auto &transaction = BigQueryTransaction::Get(context, catalog);
 

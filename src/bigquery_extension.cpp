@@ -26,21 +26,24 @@ unique_ptr<BaseSecret> CreateBigQuerySecretFunction(ClientContext &, CreateSecre
 	for (const auto &named_param : input.options) {
 		auto lower_name = StringUtil::Lower(named_param.first);
 
-		if (lower_name == "execution_project") {
-			result->secret_map["execution_project"] = named_param.second.ToString();
-		} else {
+		if (lower_name == "service_account_json") {
+			//Printer::Print("CreateBigQuerySecretFunction service_account_json: " + named_param.second.ToString());
+			result->secret_map["service_account_json"] = named_param.second.ToString();
+		}
+		else {
 			throw InternalException("Unknown named parameter passed to CreateBigQuerySecretFunction: " + lower_name);
 		}
 	}
 
 	//! Set redact keys
 	// TODO support different login method and redact keys
-	// result->redact_keys = {"password"};
+	 result->redact_keys = {"service_account_json"};
 	return std::move(result);
 }
 
 void SetBigQuerySecretParameters(CreateSecretFunction &function) {
 	function.named_parameters["execution_project"] = LogicalType::VARCHAR;
+	function.named_parameters["service_account_json"] = LogicalType::VARCHAR;
 }
 
 static void LoadInternal(DatabaseInstance &db) {
@@ -73,20 +76,15 @@ static void LoadInternal(DatabaseInstance &db) {
 	config.storage_extensions["duckdb_bigquery"] = make_uniq<BigQueryStorageExtension>();
 
 	// Add BigQuery extension specific options
-	// config.AddExtensionOption("bigquery_experimental_filter_pushdown",
-	//                           "Whether or not to use filter pushdown (currently experimental)", LogicalType::BOOLEAN,
-	//                           Value::BOOLEAN(false));
+	config.AddExtensionOption("bigquery_filter_pushdown",
+	                          "Whether or not to use filter pushdown", LogicalType::BOOLEAN,
+	                          Value::BOOLEAN(true));
 	// config.AddExtensionOption("bigquery_debug_show_queries", "DEBUG SETTING: print all queries sent to BigQuery to stdout",
 	//                           LogicalType::BOOLEAN, Value::BOOLEAN(false), SetBigQueryDebugQueryPrint);
-	// config.AddExtensionOption("bigquery_tinyint1_as_boolean", "Whether or not to convert TINYINT(1) columns to BOOLEAN",
-	//                           LogicalType::BOOLEAN, Value::BOOLEAN(true), BigQueryClearCacheFunction::ClearCacheOnSetting);
-	// config.AddExtensionOption("bigquery_bit1_as_boolean", "Whether or not to convert BIT(1) columns to BOOLEAN",
-	//                           LogicalType::BOOLEAN, Value::BOOLEAN(true), BigQueryClearCacheFunction::ClearCacheOnSetting);
 
-	// TODO check if an optimizer is worth it
-	// OptimizerExtension bigquery_optimizer;
-	// bigquery_optimizer.optimize_function = BigQueryOptimizer::Optimize;
-	// config.optimizer_extensions.push_back(std::move(bigquery_optimizer));
+	OptimizerExtension bigquery_optimizer;
+	bigquery_optimizer.optimize_function = BigQueryOptimizer::Optimize;
+	config.optimizer_extensions.push_back(std::move(bigquery_optimizer));
 }
 
 void DuckdbBigqueryExtension::Load(DuckDB &db) {

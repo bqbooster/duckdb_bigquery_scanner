@@ -51,6 +51,7 @@ void OptimizeBigQueryScan(unique_ptr<LogicalOperator> &op) {
         }
         // Cast the bind data of the GET operator to BigQueryScanBindData for modification
         auto &bind_data = get.bind_data->Cast<BigQueryScanBindData>();
+		//Printer::Print("OptimizeBigQueryScan");
         // If a limit is set, apply it to the bind data
         if (limit.limit_val.Type() != LimitNodeType::UNSET) {
             bind_data.limit = limit.limit_val.GetConstantValue();
@@ -71,8 +72,7 @@ void OptimizeBigQueryScan(unique_ptr<LogicalOperator> &op) {
 }
 
 void BigQueryOptimizer::Optimize(OptimizerExtensionInput &input, unique_ptr<LogicalOperator> &plan){
-	// TODO - Implement this function as it was written for mysql
-	// OptimizeBigQueryScan(plan);
+	 OptimizeBigQueryScan(plan);
 }
 
 } // namespace duckdb

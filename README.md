@@ -7,11 +7,12 @@ This extension is meant to be a foreign data wrapper for BigQuery.
 
 ## Features
 
-- [x] Read from BigQuery tables (Storage API)
+- [x] Read from BigQuery tables (Storage API) -- currently only supports reading from tables, not views
 - [x] Google Application Default Credentials (ADC) support
-- [x] Column pushdown
+- [x] Service account JSON credentials support
+- [x] Projection (column) pushdown
 - [x] LIMIT / OFFSET pushdown
-- [ ] Filter (WHERE) pushdown
+- [x] Filter (WHERE) pushdown
 - [ ] Write to BigQuery tables
 - [ ] Support for BigQuery DDL
 - [ ] Support for BigQuery DML
@@ -47,6 +48,8 @@ SELECT my_column FROM bq.my_dataset.my_table;
 
 ## Authentication
 
+### Google Application Default Credentials (ADC)
+
 The extension uses Google Application Default Credentials (ADC) to authenticate with BigQuery. This means that you need to have the `GOOGLE_APPLICATION_CREDENTIALS` environment variable set to the path of your service account key file. You can set this environment variable like so:
 
 ```shell
@@ -54,6 +57,22 @@ export GOOGLE_APPLICATION_CREDENTIALS="/path/to/your/service-account-key.json"
 ```
 
 For more details about setting up ADC, see the [Google Cloud documentation](https://cloud.google.com/docs/authentication/gcloud).
+
+### Service account JSON credentials
+
+It requires to create a secret with the service account credentials like the following:
+```
+CREATE SECRET duckdb_bigquery_secret (
+    TYPE bigquery,
+    service_account_json '{ "type": "service_account", "project_id": "my-gcp-project", "private_key_id": "xxxx", "private_key": "-----BEGIN PRIVATE KEY-----\nxxx\n-----END PRIVATE KEY-----\n", "client_email": "xxx@some-gcp-project.iam.gserviceaccount.com", "client_id": "xxx", "auth_uri": "https://accounts.google.com/o/oauth2/auth", "token_uri": "https://oauth2.googleapis.com/token", "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs", "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/xxx" }'
+);
+
+ATTACH 'my_gcp_bq_storage_project' AS bq (TYPE duckdb_bigquery, SECRET duckdb_bigquery_secret);
+
+SELECT *
+FROM bq.my_dataset.my_table
+LIMIT 10;
+```
 
 ## Configuration
 
@@ -65,6 +84,14 @@ By default, the extension will use the storage project for execution. If you wan
 ATTACH 'my_gcp_bq_storage_project' AS bq (TYPE duckdb_bigquery, EXECUTION_PROJECT 'my_gcp_bq_execution_project');
 ```
 
+### Disabling filter pushdown
+
+By default, the extension will push down filters to BigQuery. If you want to disable this, you can specify it by setting an option:
+
+```sql
+  SET bigquery_filter_pushdown=false;
+
+```
 
 ## Building
 ### Managing dependencies

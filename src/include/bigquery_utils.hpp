@@ -37,13 +37,16 @@ public:
 	const string &execution_project,
 	const string &storage_project,
 	const string &dataset,
-	const string &table);
+	const string &table,
+	const string &service_account_json
+	);
 
 	static vector<BQField> BigQueryReadColumnListForTable(
 	const string &execution_project,
 	const string &storage_project,
 	const string &dataset,
-	const string &table);
+	const string &table,
+	const string &service_account_json);
 
   static Value ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar);
 

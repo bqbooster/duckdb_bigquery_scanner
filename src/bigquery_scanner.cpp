@@ -16,6 +16,7 @@
 #include <algorithm>
 
 #include "google/cloud/bigquery/storage/v1/bigquery_read_client.h"
+#include "google/cloud/credentials.h"
 #include "bigquery_utils.hpp"
 
 namespace bigquery_storage = ::google::cloud::bigquery_storage_v1;
@@ -87,8 +88,10 @@ static unique_ptr<GlobalTableFunctionState> BigQueryInitGlobalState(ClientContex
 	auto limit = bind_data.limit;
 	auto offset = bind_data.offset;
 	auto has_limit = bind_data.has_limit;
+	auto service_account_json = bigquery_catalog.service_account_json;
 
 	//Printer::Print("BigQueryReadTable: " + execution_project + " " + storage_project + "." + dataset + "." + table);
+	//Printer::Print("limit: " + to_string(limit) + " offset: " + to_string(offset) + " has_limit: " + to_string(has_limit));
   	// table_name should be in the format:
   	// "projects/<project-table-resides-in>/datasets/<dataset-table_resides-in>/tables/<table
   	// name>" The project values in project_name and table_name do not have to be
@@ -96,15 +99,32 @@ static unique_ptr<GlobalTableFunctionState> BigQueryInitGlobalState(ClientContex
   	std::string const table_name = "projects/" + storage_project + "/datasets/" + dataset + "/tables/" + table;
 
 	constexpr int max_streams = 1;
-	auto connection = bigquery_storage::MakeBigQueryReadConnection();
+
+	std::shared_ptr<google::cloud::bigquery_storage_v1::BigQueryReadConnection> connection;
+	if(service_account_json.empty()){
+		connection = bigquery_storage::MakeBigQueryReadConnection();
+	}
+	else {
+		//Printer::Print("GetAccessToken service_account_json: " + service_account_json);
+		auto options = google::cloud::Options{}
+	.set<google::cloud::UnifiedCredentialsOption>(
+		google::cloud::MakeServiceAccountCredentials(service_account_json));
+		connection = bigquery_storage::MakeBigQueryReadConnection(options);
+	}
+
 	// Create the ReadSession.
 	auto read_session = make_uniq<bigquery_storage_read::ReadSession>();
 	read_session->set_data_format(google::cloud::bigquery::storage::v1::DataFormat::ARROW);
 	read_session->set_table(table_name);
 	for (idx_t c = 0; c < column_names.size(); c++) {
+		//Printer::Print("Adding column: " + column_names[c]);
 		read_session->mutable_read_options()->add_selected_fields(column_names[c]);
 	}
-
+	auto filters = BigQueryFilterPushdown::TransformFilters(input.column_ids, input.filters, bind_data.column_names);
+	//Printer::Print("filters: " + filters);
+	if(!filters.empty()){
+		read_session->mutable_read_options()->set_row_restriction(filters);
+	}
 	//Printer::Print("column_names size: " + to_string(column_names.size()));
 
 	return make_uniq<BigQueryScannerGlobalState>(
@@ -129,8 +149,6 @@ static unique_ptr<LocalTableFunctionState> BigQueryInitLocalState(ExecutionConte
 static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataChunk &output) {
 	//Printer::Print("BigQueryScan");
 	auto &gstate = data.global_state->Cast<BigQueryScannerGlobalState>();
-	//auto &result = gstate.result;
-	//auto &schema = gstate.schema;
 	auto connection = gstate.connection;
 	auto execution_project = gstate.execution_project;
 	auto storage_project = gstate.storage_project;
@@ -138,7 +156,8 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 	auto table = gstate.table;
 	auto &read_session = gstate.read_session;
 
-	//auto &
+	//Printer::Print("gstate.has_limit: " + to_string(gstate.has_limit));
+
 	//Printer::Print("BigQueryScan: got rows response");
 	std::string const project_name = "projects/" + execution_project;
 	auto client = bigquery_storage::BigQueryReadClient(connection);
@@ -146,11 +165,11 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
       client.CreateReadSession(project_name, *read_session, 1);
 
 	if (!session) {
-		Printer::Print("Error creating ReadSession: " + session.status().message());
+		//Printer::Print("Error creating ReadSession: " + session.status().message());
 		throw std::move(session).status();
 	}
 
-	idx_t r = 0;
+	idx_t duckdb_row_idx = 0;
 	//Printer::Print("BigQueryScan: created ReadSession with offset: " + to_string(gstate.current_offset));
 	auto read_rows = client.ReadRows(session->streams(0).name(), gstate.current_offset);
 
@@ -159,6 +178,7 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 	//Printer::Print("Got schema");
 
   	for (auto const& read_rows_response : read_rows) {
+	//Printer::Print("---- read rows response ----");
     if (read_rows_response.ok()) {
       auto record_batch =
           BigQueryResult::GetArrowRecordBatch(
@@ -166,6 +186,9 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 
 	  std::int64_t batch_num_rows = record_batch->num_rows();
 	  std::int64_t limit_rows = gstate.limit - gstate.global_row_count;
+	  //Printer::Print("limit_rows: " + to_string(limit_rows));
+	  //Printer::Print("batch_num_rows: " + to_string(batch_num_rows));
+	  //Printer::Print("current duckdb_row_idx: " + to_string(duckdb_row_idx));
 
 	  auto first_min =  gstate.has_limit ? std::min(batch_num_rows, limit_rows) : batch_num_rows;
 
@@ -173,13 +196,14 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 			 first_min,
 			 static_cast<int64_t>(STANDARD_VECTOR_SIZE));
 
-		//Printer::Print("max_rows: " + to_string(max_rows));
-
+	  //Printer::Print("max_rows: " + to_string(max_rows));
 
 	  for (idx_t c = 0; c < output.ColumnCount(); c++) {
+
 		std::shared_ptr<arrow::Array> column = record_batch->column(c);
 
-		for (r = 0; r < max_rows; r++) {
+		for(idx_t r = 0; r < max_rows; r++){
+			//Printer::Print("Setting value for column: " + to_string(c) + " bq arrow row: " + to_string(r));
 
 			arrow::Result<std::shared_ptr<arrow::Scalar> > result =
         	  column->GetScalar(r);
@@ -191,22 +215,23 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 			std::shared_ptr<arrow::Scalar> scalar = result.ValueOrDie();
 
 			auto v = BigQueryUtils::ValueFromArrowScalar(scalar);
-			output.SetValue(c, r, v);
+			output.SetValue(c, gstate.current_offset + r, v);
 		}
 	  }
+	gstate.current_offset = gstate.current_offset + max_rows;
+	gstate.global_row_count = gstate.global_row_count + max_rows;
+	duckdb_row_idx = duckdb_row_idx + max_rows;
+
     }
   }
 
-	if (r == 0) {
+	if (duckdb_row_idx == 0) {
 		// done
 		return;
 	}
 
-	gstate.current_offset = gstate.current_offset + r;
-	gstate.global_row_count = gstate.global_row_count + r;
-
-	output.SetCardinality(r);
-	//Printer::Print("SetCardinality with r: " + to_string(r));
+	output.SetCardinality(duckdb_row_idx);
+	//Printer::Print("SetCardinality with r: " + to_string(duckdb_row_idx));
 
 }
 
@@ -233,7 +258,8 @@ BigQueryScanFunction::BigQueryScanFunction(): TableFunction(
 	to_string = BigQueryScanToString;
 	serialize = BigQueryScanSerialize;
 	deserialize = BigQueryScanDeserialize;
-	projection_pushdown = false;
+	projection_pushdown = true;
+	filter_pushdown = true;
 }
 
 } // namespace duckdb

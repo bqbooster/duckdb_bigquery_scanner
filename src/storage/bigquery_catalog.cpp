@@ -9,10 +9,12 @@
 
 namespace duckdb {
 
-BigQueryCatalog::BigQueryCatalog(AttachedDatabase &db_p, const string &storage_project, const string &execution_project, AccessMode access_mode)
-    : Catalog(db_p), path(storage_project), access_mode(access_mode), schemas(*this) {
-	this->storage_project = storage_project;
-	this->execution_project = execution_project;
+BigQueryCatalog::BigQueryCatalog(AttachedDatabase &db_p, const string &path,
+	 const string &execution_project, AccessMode access_mode,
+	 const string &service_account_json)
+    : Catalog(db_p), storage_project(path), access_mode(access_mode),
+	  schemas(*this), service_account_json(service_account_json),
+	  execution_project(execution_project) {
 	// try to connect
 	//auto connection = BigQueryConnection::Open(path);
 }

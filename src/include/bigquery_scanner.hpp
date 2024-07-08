@@ -26,6 +26,7 @@ struct BigQueryScanBindData : public FunctionData {
 	idx_t limit;
 	idx_t offset;
 	bool has_limit = false;
+	string service_account_json = "";
 
 public:
 	unique_ptr<FunctionData> Copy() const override {

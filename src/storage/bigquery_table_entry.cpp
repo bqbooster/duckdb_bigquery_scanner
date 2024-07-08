@@ -46,11 +46,14 @@ TableFunction BigQueryTableEntry::GetScanFunction(ClientContext &context, unique
 		scan_bind_data->column_names.push_back(col.GetName());
 	}
 
+	scan_bind_data-> service_account_json = this->catalog.Cast<BigQueryCatalog>().service_account_json;
+
 	bind_data = std::move(scan_bind_data);
 
 	auto function = BigQueryScanFunction();
 	Value filter_pushdown;
-	if (context.TryGetCurrentSetting("bigquery_experimental_filter_pushdown", filter_pushdown)) {
+	if (context.TryGetCurrentSetting("bigquery_filter_pushdown", filter_pushdown)) {
+		//Printer::Print("BigQueryTableEntry::GetScanFunction filter_pushdown: " + filter_pushdown.ToString());
 		function.filter_pushdown = BooleanValue::Get(filter_pushdown);
 	}
 	return function;

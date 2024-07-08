@@ -37,7 +37,8 @@ static unique_ptr<Catalog> BigQueryAttach(StorageExtensionInfo *storage_info, Cl
                                        const string &name, AttachInfo &info, AccessMode access_mode) {
 	//Printer::Print("BigQueryAttach");
 	string database = info.path;
-	string execution_project = database;
+	string execution_project = database; // default to the database name
+	string service_account_json = "";
 	// check if we have a secret provided
 	string secret_name;
 	for (auto &entry : info.options) {
@@ -66,17 +67,17 @@ static unique_ptr<Catalog> BigQueryAttach(StorageExtensionInfo *storage_info, Cl
 	if (secret_entry) {
 		// secret found - read data
 		const auto &kv_secret = dynamic_cast<const KeyValueSecret &>(*secret_entry->secret);
-		execution_project = SecretValueOrEmpty(kv_secret, "execution_project");
-		database = SecretValueOrEmpty(kv_secret, "database");
+		service_account_json = SecretValueOrEmpty(kv_secret, "service_account_json");
 	} else if (explicit_secret) {
 		// secret not found and one was explicitly provided - throw an error
 		throw BinderException("Secret with name \"%s\" not found", secret_name);
 	}
 
+	//Printer::Print("service_account_json: " + service_account_json + "\n");
 	//Printer::Print("execution_project: " + execution_project + "\n");
 	//Printer::Print("database: " + database + "\n");
 
-	return make_uniq<BigQueryCatalog>(db, database, execution_project, access_mode);
+	return make_uniq<BigQueryCatalog>(db, database, execution_project, access_mode, service_account_json);
 }
 
 static unique_ptr<TransactionManager> BigQueryCreateTransactionManager(StorageExtensionInfo *storage_info,

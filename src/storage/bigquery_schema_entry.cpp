@@ -219,10 +219,11 @@ optional_ptr<CatalogEntry> BigQuerySchemaEntry::GetEntry(CatalogTransaction tran
 			bq_catalog->execution_project,
 			bq_catalog->storage_project,
 			this->name,
-			name);
+			name,
+			bq_catalog->service_account_json);
 		//Printer::Print("BigQuerySchemaEntry::GetEntry creating table entry");
 		// print the columns from create_info inside table_info
-		auto &columns = table_entry->GetColumns();
+		// auto &columns = table_entry->GetColumns();
 		// for (auto &col : columns.GetColumnNames()) {
 		// 	Printer::Print("BigQuerySchemaEntry::GetEntry column: " + col);
 		// }

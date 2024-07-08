@@ -32,8 +32,14 @@ using namespace concurrency::streams;
 
 namespace duckdb {
 
-std::string GetAccessToken() {
-	auto credentials = gcpoauth2::GoogleDefaultCredentials();
+std::string GetAccessToken(const string &service_account_json) {
+	google::cloud::v2_25::StatusOr<std::__1::shared_ptr<google::cloud::storage::v2_25::oauth2::Credentials>>  credentials;
+	if(service_account_json.empty()) {
+		credentials = gcpoauth2::GoogleDefaultCredentials();
+	} else {
+		//Printer::Print("GetAccessToken service_account_json: " + service_account_json);
+		credentials = gcpoauth2::CreateServiceAccountCredentialsFromJsonContents(service_account_json);
+	}
 	if (!credentials) {
 		throw std::runtime_error("Failed to create credentials: " + credentials.status().message());
 	}
@@ -51,10 +57,12 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
 	const string &execution_project,
 	const string &storage_project,
 	const string &dataset,
-	const string &table) {
+	const string &table,
+	const string &service_account_json
+	) {
 	//Printer::Print("BigQueryReadTableEntry for execution_project: " + execution_project + " storage_project: " + storage_project + " dataset: " + dataset + " table: " + table);
 	auto column_list = BigQueryUtils::BigQueryReadColumnListForTable(
-		execution_project, storage_project, dataset, table);
+		execution_project, storage_project, dataset, table, service_account_json);
 	if (column_list.size() == 0) {
 		return nullptr;
 	}
@@ -81,10 +89,11 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
     const std::string &execution_project,
     const std::string &storage_project,
     const std::string &dataset,
-    const std::string &table) {
+    const std::string &table,
+	const string &service_account_json) {
     //Printer::Print("BigQueryReadColumnListForTable for execution_project: " + execution_project + " storage_project: " + storage_project + " dataset: " + dataset + " table: " + table);
 
-    std::string access_token = GetAccessToken();
+    std::string access_token = GetAccessToken(service_account_json);
 
     //Printer::Print("Access token: " + access_token);
 
@@ -132,7 +141,10 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
 
                 return column_list;
             });
-        }
+        } else {
+			Printer::Print("Error: " + response.to_string());
+			throw std::runtime_error("Failed to get column list for provided table, it's likely either an authentication issue or the table does not exist");
+		}
         return pplx::task_from_result(vector<BQField>());
     });
 
