@@ -33,7 +33,7 @@ using namespace concurrency::streams;
 namespace duckdb {
 
 std::string GetAccessToken(const string &service_account_json) {
-	google::cloud::v2_25::StatusOr<std::__1::shared_ptr<google::cloud::storage::v2_25::oauth2::Credentials>>  credentials;
+	google::cloud::StatusOr<std::__1::shared_ptr<google::cloud::storage::oauth2::Credentials>>  credentials;
 	if(service_account_json.empty()) {
 		credentials = gcpoauth2::GoogleDefaultCredentials();
 	} else {
@@ -391,6 +391,9 @@ LogicalType BigQueryUtils::TypeToLogicalType(const std::string &bq_type) {
         return LogicalType::VARCHAR;
     } else if(bq_type == "BOOLEAN") {
 		return LogicalType::BOOLEAN;
+	} else if(bq_type == "RECORD") {
+		throw NotImplementedException("RECORD type not supported yet");
+		//return LogicalType::STRUCT();
 	}
 	Printer::Print("Unknown type: " + bq_type);
     // fallback for unknown types

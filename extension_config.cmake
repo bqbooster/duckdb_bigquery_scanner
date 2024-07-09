@@ -3,8 +3,8 @@
 # Extension from this repo
 duckdb_extension_load(duckdb_bigquery
     SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}
-    LINKED_LIBS "${VCPKG_INSTALLED_DIR}/wasm32-emscripten/lib/*_static.a"
     LOAD_TESTS
+    DONT_LINK
 )
 
 # Any extra extensions that should be built
