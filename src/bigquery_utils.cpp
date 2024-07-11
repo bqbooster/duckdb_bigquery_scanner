@@ -98,9 +98,8 @@ namespace duckdb {
 				for (auto &subfield : subfields) {
 					subfield_types.emplace_back(subfield.name, subfield.type);
 				}
-				//TODO
 				auto duckdb_type = LogicalType::STRUCT(subfield_types);
-				Printer::Print("Struct type: " + duckdb_type.ToString());
+				//Printer::Print("Struct type: " + duckdb_type.ToString());
 				return duckdb_type;
 				//return LogicalType::STRUCT();
 			}
@@ -145,7 +144,7 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
 		return nullptr;
 	}
 	// print size of columns
-	auto column_list_size = column_list.size();
+	//auto column_list_size = column_list.size();
 	//Printer::Print("column_list_size size: " + to_string(column_list_size));
 
 	//Printer::Print("column_list done");
@@ -157,7 +156,7 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
 		columns.AddColumn(std::move(column));
 	}
 	// print size of columns
-	auto column_size = columns.GetColumnNames().size();
+	//auto column_size = columns.GetColumnNames().size();
 	//Printer::Print("columns size: " + to_string(column_size));
 	auto table_entry = make_uniq<BigQueryTableEntry>(catalog, *schema_entry, *table_info);
 	return table_entry;
@@ -198,10 +197,15 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
         if (response.status_code() == status_codes::OK) {
             return response.extract_json()
             .then([](web::json::value const& v) -> vector<BQField> {
-				return BigQueryUtils::ParseColumnJSONResponse(v);
+				auto bqFields = BigQueryUtils::ParseColumnJSONResponse(v);
+				// print bq fields
+				for (auto &field : bqFields) {
+					//Printer::Print("Field: " + field.name + " " + field.type.ToString());
+				}
+				return bqFields;
             });
         } else {
-			Printer::Print("Error: " + response.to_string());
+			//Printer::Print("Error: " + response.to_string());
 			throw std::runtime_error("Failed to get column list for provided table, it's likely either an authentication issue or the table does not exist");
 		}
         return pplx::task_from_result(vector<BQField>());
@@ -333,12 +337,12 @@ Value BigQueryUtils::ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar)
 			}
 		case arrow::Type::STRUCT: {
 			 // Extract the struct value from the StructScalar
-			 Printer::Print("Struct scalar");
+			 //Printer::Print("Struct scalar");
 			auto struct_scalar = std::static_pointer_cast<arrow::StructScalar>(scalar);
 			const auto& struct_values = struct_scalar->value;
 			const auto& field_names = struct_scalar->type->fields();
-			Printer::Print("Struct scalar values: " + to_string(struct_values.size()));
-			Printer::Print("Struct scalar names: " + to_string(field_names.size()));
+			//Printer::Print("Struct scalar values: " + to_string(struct_values.size()));
+			//Printer::Print("Struct scalar names: " + to_string(field_names.size()));
 			// Convert each field in the struct to a Value
 			child_list_t<Value> values;
 			for (size_t i = 0; i < struct_values.size(); i++) {
