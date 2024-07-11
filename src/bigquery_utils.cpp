@@ -32,6 +32,84 @@ using namespace concurrency::streams;
 
 namespace duckdb {
 
+	class BQColumnRequest {
+	private:
+		json schema;
+	public:
+		BQColumnRequest(const json& schema): schema(schema) {}
+		vector<BQField> ParseColumnFields() {
+			return ParseColumnFields(this->schema);
+		}
+		vector<BQField> ParseColumnFields(const json& schema) {
+			//Printer::Print("Parsing schema 1");
+			vector<BQField> column_list;
+			for (const auto& field : schema["fields"]) {
+				auto field_name = field["name"].get<std::string>();
+				auto field_type_str = field["type"].get<std::string>();
+				std::vector<BQField> subfields;
+				//Printer::Print("Parsing schema " + field_name + " " + field_type_str);
+
+				if (field_type_str == "RECORD") {
+					//Printer::Print("Parsing record");
+					subfields = ParseColumnFields(field);
+				}
+
+				auto field_type = TypeToLogicalType(field_type_str, subfields);
+				column_list.push_back(BQField(field_name, field_type));
+			}
+			return column_list;
+		}
+
+		LogicalType TypeToLogicalType(const std::string &bq_type, std::vector<BQField> subfields) {
+			if (bq_type == "INTEGER") {
+				return LogicalType::BIGINT;
+			} else if (bq_type == "FLOAT") {
+				return LogicalType::DOUBLE;
+			} else if (bq_type == "DATE") {
+				return LogicalType::DATE;
+			} else if (bq_type == "TIME") {
+				// we need to convert time to VARCHAR because TIME in BigQuery is more like an
+				// interval and can store ranges between -838:00:00 to 838:00:00
+				return LogicalType::VARCHAR;
+			} else if (bq_type == "TIMESTAMP") {
+				// in BigQuery, "timestamp" columns are timezone aware while "datetime" columns
+				// are not
+				return LogicalType::TIMESTAMP_TZ;
+			} else if (bq_type == "YEAR") {
+				return LogicalType::INTEGER;
+			} else if (bq_type == "DATETIME") {
+				return LogicalType::TIMESTAMP;
+			} else if (bq_type == "NUMERIC" || bq_type == "BIGNUMERIC") {
+				// BigQuery NUMERIC and BIGNUMERIC types can have a precision up to 38 and a scale up to 9
+				// Assume a default precision and scale for this example; these could be parameterized if needed
+				return LogicalType::DECIMAL(38, 9);
+			} else if (bq_type == "JSON") {
+				// FIXME
+				return LogicalType::VARCHAR;
+			} else if (bq_type == "BYTES") {
+				return LogicalType::BLOB;
+			} else if (bq_type == "STRING") {
+				return LogicalType::VARCHAR;
+			} else if(bq_type == "BOOLEAN") {
+				return LogicalType::BOOLEAN;
+			} else if(bq_type == "RECORD") {
+				// transform the subfields into a list of LogicalType using a recursive call
+				child_list_t<LogicalType> subfield_types;
+				for (auto &subfield : subfields) {
+					subfield_types.emplace_back(subfield.name, subfield.type);
+				}
+				//TODO
+				auto duckdb_type = LogicalType::STRUCT(subfield_types);
+				Printer::Print("Struct type: " + duckdb_type.ToString());
+				return duckdb_type;
+				//return LogicalType::STRUCT();
+			}
+			Printer::Print("Unknown type: " + bq_type);
+			// fallback for unknown types
+			return LogicalType::VARCHAR;
+		}
+};
+
 std::string GetAccessToken(const string &service_account_json) {
 	google::cloud::StatusOr<std::__1::shared_ptr<google::cloud::storage::oauth2::Credentials>>  credentials;
 	if(service_account_json.empty()) {
@@ -120,26 +198,7 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
         if (response.status_code() == status_codes::OK) {
             return response.extract_json()
             .then([](web::json::value const& v) -> vector<BQField> {
-                std::string str = v.serialize();
-                //Printer::Print("received JSON: " + str);
-
-                // Parse the JSON string
-                json j = json::parse(str);
-
-                // Extract the fields
-                vector<BQField> column_list;
-                for (const auto& field : j["schema"]["fields"]) {
-					auto field_name = field["name"].get<std::string>();
-                    auto field_type = BigQueryUtils::TypeToLogicalType(field["type"]);
-					//add BQField to column_list
-					column_list.push_back(BQField(field_name, field_type));
-                }
-
-                // for (const auto& field : column_list) {
-                //     Printer::Print("field: " + field.name + " type: " + field.type.ToString());
-                // }
-
-                return column_list;
+				return BigQueryUtils::ParseColumnJSONResponse(v);
             });
         } else {
 			Printer::Print("Error: " + response.to_string());
@@ -158,6 +217,18 @@ unique_ptr<BigQueryTableEntry> BigQueryUtils::BigQueryCreateBigQueryTableEntry(
         return vector<BQField>();
     }
     return vector<BQField>();
+}
+
+vector<BQField> BigQueryUtils::ParseColumnJSONResponse(web::json::value const& v){
+
+	std::string str = v.serialize();
+	//Printer::Print("received JSON: " + str);
+	// Parse the JSON string
+	json j = json::parse(str);
+	auto schema = j["schema"];
+	//return vector<BQField>();
+	auto bcr = new BQColumnRequest(schema);
+	return bcr->ParseColumnFields();
 }
 
 Value BigQueryUtils::ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar) {
@@ -262,10 +333,12 @@ Value BigQueryUtils::ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar)
 			}
 		case arrow::Type::STRUCT: {
 			 // Extract the struct value from the StructScalar
+			 Printer::Print("Struct scalar");
 			auto struct_scalar = std::static_pointer_cast<arrow::StructScalar>(scalar);
 			const auto& struct_values = struct_scalar->value;
 			const auto& field_names = struct_scalar->type->fields();
-
+			Printer::Print("Struct scalar values: " + to_string(struct_values.size()));
+			Printer::Print("Struct scalar names: " + to_string(field_names.size()));
 			// Convert each field in the struct to a Value
 			child_list_t<Value> values;
 			for (size_t i = 0; i < struct_values.size(); i++) {
@@ -359,45 +432,20 @@ Value BigQueryUtils::ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar)
 	}
 }
 
-LogicalType BigQueryUtils::TypeToLogicalType(const std::string &bq_type) {
-    if (bq_type == "INTEGER") {
-        return LogicalType::BIGINT;
-    } else if (bq_type == "FLOAT") {
-        return LogicalType::DOUBLE;
-    } else if (bq_type == "DATE") {
-        return LogicalType::DATE;
-    } else if (bq_type == "TIME") {
-        // we need to convert time to VARCHAR because TIME in BigQuery is more like an
-        // interval and can store ranges between -838:00:00 to 838:00:00
-        return LogicalType::VARCHAR;
-    } else if (bq_type == "TIMESTAMP") {
-        // in BigQuery, "timestamp" columns are timezone aware while "datetime" columns
-        // are not
-        return LogicalType::TIMESTAMP_TZ;
-    } else if (bq_type == "YEAR") {
-        return LogicalType::INTEGER;
-    } else if (bq_type == "DATETIME") {
-        return LogicalType::TIMESTAMP;
-    } else if (bq_type == "NUMERIC" || bq_type == "BIGNUMERIC") {
-        // BigQuery NUMERIC and BIGNUMERIC types can have a precision up to 38 and a scale up to 9
-        // Assume a default precision and scale for this example; these could be parameterized if needed
-        return LogicalType::DECIMAL(38, 9);
-    } else if (bq_type == "JSON") {
-        // FIXME
-        return LogicalType::VARCHAR;
-    } else if (bq_type == "BYTES") {
-        return LogicalType::BLOB;
-    } else if (bq_type == "STRING") {
-        return LogicalType::VARCHAR;
-    } else if(bq_type == "BOOLEAN") {
-		return LogicalType::BOOLEAN;
-	} else if(bq_type == "RECORD") {
-		throw NotImplementedException("RECORD type not supported yet");
-		//return LogicalType::STRUCT();
-	}
-	Printer::Print("Unknown type: " + bq_type);
-    // fallback for unknown types
-    return LogicalType::VARCHAR;
+std::shared_ptr<arrow::Schema> BigQueryUtils::GetArrowSchema(
+    ::google::cloud::bigquery::storage::v1::ArrowSchema const& schema_in) {
+  std::shared_ptr<arrow::Buffer> buffer =
+      std::make_shared<arrow::Buffer>(schema_in.serialized_schema());
+  arrow::io::BufferReader buffer_reader(buffer);
+  arrow::ipc::DictionaryMemo dictionary_memo;
+  auto result = arrow::ipc::ReadSchema(&buffer_reader, &dictionary_memo);
+  if (!result.ok()) {
+	Printer::Print("Unable to parse schema: " + result.status().message());
+    throw result.status();
+  }
+  std::shared_ptr<arrow::Schema> schema = result.ValueOrDie();
+  //Printer::Print("Schema: " + schema->ToString());
+  return schema;
 }
 
 string BigQueryUtils::EscapeQuotes(const string &text, char quote) {
@@ -413,22 +461,6 @@ string BigQueryUtils::EscapeQuotes(const string &text, char quote) {
 		}
 	}
 	return result;
-}
-
-std::shared_ptr<arrow::Schema> BigQueryUtils::GetArrowSchema(
-    ::google::cloud::bigquery::storage::v1::ArrowSchema const& schema_in) {
-  std::shared_ptr<arrow::Buffer> buffer =
-      std::make_shared<arrow::Buffer>(schema_in.serialized_schema());
-  arrow::io::BufferReader buffer_reader(buffer);
-  arrow::ipc::DictionaryMemo dictionary_memo;
-  auto result = arrow::ipc::ReadSchema(&buffer_reader, &dictionary_memo);
-  if (!result.ok()) {
-	Printer::Print("Unable to parse schema: " + result.status().message());
-    throw result.status();
-  }
-  std::shared_ptr<arrow::Schema> schema = result.ValueOrDie();
-  //Printer::Print("Schema: " + schema->ToString());
-  return schema;
 }
 
 string BigQueryUtils::WriteQuoted(const string &text, char quote) {

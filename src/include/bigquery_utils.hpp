@@ -11,6 +11,12 @@
 #include "duckdb.hpp"
 #include "google/cloud/bigquery/storage/v1/bigquery_read_client.h"
 #include <arrow/api.h>
+#include <nlohmann/json.hpp>
+#include <cpprest/http_client.h>
+
+using json = nlohmann::json;
+using namespace web::http;
+using namespace web::http::client;
 
 namespace duckdb {
 
@@ -48,18 +54,20 @@ public:
 	const string &table,
 	const string &service_account_json);
 
-  static Value ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar);
+  	static Value ValueFromArrowScalar(std::shared_ptr<arrow::Scalar> scalar);
 
-  static std::shared_ptr<arrow::Schema> GetArrowSchema(
+  	static std::shared_ptr<arrow::Schema> GetArrowSchema(
     ::google::cloud::bigquery::storage::v1::ArrowSchema const& schema_in);
 
 	//static BigQueryConnectionParameters ParseConnectionParameters(const string &dsn);
 	//static BIGQUERY *Connect(const string &dsn);
 
 	//static LogicalType ToBigQueryType(const LogicalType &input);
-	static LogicalType TypeToLogicalType(const std::string &bq_type);
 	//static LogicalType FieldToLogicalType(ClientContext &context, BIGQUERY_FIELD *field);
-	// static string TypeToString(const LogicalType &input);
+	//static string TypeToString(const LogicalType &input);
+	static vector<BQField> ParseColumnJSONResponse(web::json::value const& v);
+	//static LogicalType TypeToLogicalType(const std::string &bq_type, std::vector<BQField> subfields);
+	//static vector<BQField> ParseColumnFields(const json& schema);
 
 	static string WriteIdentifier(const string &identifier);
 	static string WriteLiteral(const string &identifier);
