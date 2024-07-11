@@ -3,7 +3,6 @@ cmake_minimum_required(VERSION 3.20)
 set(TARGET_NAME duckdb_bigquery)
 project(${TARGET_NAME})
 set(CMAKE_CXX_STANDARD 20)
-#set(CMAKE_CXX_STANDARD 14)
 
 find_package(google_cloud_cpp_bigquery REQUIRED)
 find_package(google_cloud_cpp_common REQUIRED)
@@ -37,3 +36,5 @@ nlohmann_json::nlohmann_json
 Threads::Threads
 Arrow::arrow_static
 )
+
+add_subdirectory(test)

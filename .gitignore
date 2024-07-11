@@ -8,3 +8,4 @@ testext
 test/python/__pycache__/
 .Rhistory
 vcpkg_installed/
+vcpkg/

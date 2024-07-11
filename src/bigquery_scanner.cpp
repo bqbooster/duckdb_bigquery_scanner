@@ -31,7 +31,7 @@ struct BigQueryScannerGlobalState : public GlobalTableFunctionState {
 		string storage_project,
 		string dataset,
 		string table,
-		unique_ptr<bigquery_storage_read::ReadSession> read_session,
+		unique_ptr<bigquery_storage_read::ReadSession> read_session_p,
 		std::shared_ptr<google::cloud::bigquery_storage_v1::BigQueryReadConnection> connection_p,
 		idx_t limit,
 		idx_t offset,
@@ -41,11 +41,11 @@ struct BigQueryScannerGlobalState : public GlobalTableFunctionState {
 		  storage_project(storage_project),
 		  dataset(dataset),
 		  table(table),
-		  read_session(std::move(read_session)),
 		  connection(std::move(connection_p)),
+		  read_session(std::move(read_session_p)),
 		  current_offset(offset),
-		  global_row_count(0),
 		  limit(limit),
+		  global_row_count(0),
 		  has_limit(has_limit)
 		  {}
 
@@ -98,7 +98,7 @@ static unique_ptr<GlobalTableFunctionState> BigQueryInitGlobalState(ClientContex
   	// identical.
   	std::string const table_name = "projects/" + storage_project + "/datasets/" + dataset + "/tables/" + table;
 
-	constexpr int max_streams = 1;
+	//constexpr int max_streams = 1;
 
 	std::shared_ptr<google::cloud::bigquery_storage_v1::BigQueryReadConnection> connection;
 	if(service_account_json.empty()){
@@ -116,9 +116,10 @@ static unique_ptr<GlobalTableFunctionState> BigQueryInitGlobalState(ClientContex
 	auto read_session = make_uniq<bigquery_storage_read::ReadSession>();
 	read_session->set_data_format(google::cloud::bigquery::storage::v1::DataFormat::ARROW);
 	read_session->set_table(table_name);
-	for (idx_t c = 0; c < column_names.size(); c++) {
-		//Printer::Print("Adding column: " + column_names[c]);
-		read_session->mutable_read_options()->add_selected_fields(column_names[c]);
+	for(auto &column_id : input.column_ids){
+			auto column_name = bind_data.column_names[column_id];
+			//Printer::Print("Adding column: " + column_name);
+			read_session->mutable_read_options()->add_selected_fields(column_name);
 	}
 	auto filters = BigQueryFilterPushdown::TransformFilters(input.column_ids, input.filters, bind_data.column_names);
 	//Printer::Print("filters: " + filters);
@@ -197,6 +198,8 @@ static void BigQueryScan(ClientContext &context, TableFunctionInput &data, DataC
 			 static_cast<int64_t>(STANDARD_VECTOR_SIZE));
 
 	  //Printer::Print("max_rows: " + to_string(max_rows));
+
+	  //Printer::Print("Column count : " + to_string(output.ColumnCount()));
 
 	  for (idx_t c = 0; c < output.ColumnCount(); c++) {
 
