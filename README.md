@@ -1,4 +1,9 @@
+# Important
 
+I'm archiving this repository as I'm going to join effort on a more advanced version of a DuckDB BigQuery FDW extension:
+https://github.com/hafenkran/duckdb-bigquery
+
+---- 
 # Duckdb_bigquery
 
 ⚠ **This extension is a work in progress and is very early stage.** ⚠
